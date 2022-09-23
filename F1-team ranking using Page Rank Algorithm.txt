@@ -1,0 +1,108 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Jan 15 13:46:10 2022
+
+@author: John
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+
+
+rank=pd.read_excel('ranking_data.xlsx',sheet_name='players',index_col=0)
+team_rank=pd.read_excel('ranking_data.xlsx',sheet_name='teams_final',index_col=0)
+#In order to rank the players a 21x21 matrix was created containing the number of 'votes'
+#each player gave to the ones who beat him.For example the player who finished first
+#gave no votes.The second voted for the first and so on and so forth.Finally the last
+#player received no votes and voted for all the other players.
+#This procedure was followed for all 22 games of the 2021 F1 grand-prix.
+#The resulting number of total votes for each player is given on the above 'rank' matrix. 
+#If a player did not start the match then he did not vote for anyone and was not voted by anyone.
+#If more that one players were NC and did not finish, then they were presumed
+#to have been tied for last and therefore voted everyone above them and each other.
+
+#Creating the stochastic matrix.Divide each row with number of outlinks or 'out-votes'.
+for i in range(21):
+    row_sum=sum(rank.iloc[i,:])
+    for j in range(21):
+        rank.iloc[i,j]=rank.iloc[i,j]/row_sum
+#Now each row sums to 1        
+
+#a is the damping factor set to 0.85, and E is an nxn matrix populated entirely with 1/n values
+a=0.85
+E=np.zeros_like(rank)
+for i in range(21):
+    for j in range(21):
+        E[i,j]=1/21
+        
+#G = αS + (1 − α)E
+G=a*rank+(1-a)*E
+#z is a vector containing the initial PR scores,initially populated with 1/n values
+z=np.zeros(shape=(1,21))
+for i in range(21):
+    z[0,i]=1/21
+
+#l is the number of iterations needed to reach convergence. 
+#we set the number of repetitions to a very high number and when z converges the loop breaks
+# the resulting z vector contains the final PR scores of the players 
+l=0
+for i in range(1000):#instead of using the 'while' command , a loop with a very large i was used
+ z1=z
+ z=np.dot(z,G)
+ z=z/np.linalg.norm(z,2)#normalizing the result
+ l+=1
+ if np.max(z1)==np.max(z):
+     break
+ 
+print('Final PR scores for players')
+print(z)
+col_name=G.columns.values
+ranking=pd.DataFrame(z,columns=col_name,index=['final ranking'])
+ranking=ranking.T
+ranking=ranking.sort_values(by=['final ranking'],ascending=False)
+print('\n')
+print('Final rankings using the page ranking method')
+print('\n')
+print(ranking)
+
+#A similar approach was used to rank the teams.After each game a team received the sum of 
+#points its players received(excluding the points teammates gave one another).
+
+for i in range(10):
+    row_sum=sum(team_rank.iloc[i,:])
+    for j in range(10):
+        team_rank.iloc[i,j]=team_rank.iloc[i,j]/row_sum
+
+a=0.85
+E_team=np.zeros_like(team_rank)
+for i in range(10):
+    for j in range(10):
+        E_team[i,j]=1/10
+ 
+G_team=a*team_rank+(1-a)*E_team
+z_team=np.zeros(shape=(1,10))
+for i in range(10):
+    z_team[0,i]=1/10
+        
+k=0 # variable that contains the number of iterations needed to converge
+for i in range(1000):
+ z1_team=z_team
+ z_team=np.dot(z_team,G_team)
+ z_team=z_team/np.linalg.norm(z_team,2)#normalizing the result
+ k+=1
+ if np.max(z1_team)==np.max(z_team):
+     break    
+   
+print('\n')
+print('Final PR scores for teams')
+print(z_team)
+col_name=G_team.columns.values
+ranking_team=pd.DataFrame(z_team,columns=col_name,index=['final ranking'])
+ranking_team=ranking_team.T
+ranking_team=ranking_team.sort_values(by=['final ranking'],ascending=False)
+print('\n')
+print('Final team rankings using the page ranking method')
+print('\n')
+print(ranking_team)      
