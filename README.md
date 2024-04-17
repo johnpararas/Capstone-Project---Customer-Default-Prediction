@@ -1,0 +1,1 @@
+Customer Default Prediction consists of two files : the Customer Default Prediction.ipynb code which contains the source code and some comments on the results  and the Thesis - Customer Default Prediction.pdf which contains detailed insights and in depth comments for the results and methods.
